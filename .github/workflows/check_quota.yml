@@ -2,32 +2,20 @@ name: 🏔️ Merbabu Quota Checker
 
 on:
   schedule:
-    # Jalan setiap 30 menit, dari jam 07.00 - 22.00 WIB
-    # (GitHub Actions pakai UTC, WIB = UTC+7)
-    # Jadi UTC 00:00 - 15:00 = WIB 07:00 - 22:00
-    - cron: "*/30 0-15 * * *"
-
-  # Bisa juga dijalankan manual dari tab Actions di GitHub
+    - cron: "*/20 0-15 * * *"
   workflow_dispatch:
 
 jobs:
   check-kuota:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v4
-
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: 📦 Install dependencies
-        run: pip install requests
-
-      - name: 🔍 Cek kuota Merbabu
+      - run: pip install requests
+      - name: Cek kuota
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
