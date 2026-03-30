@@ -8,9 +8,10 @@ from datetime import datetime
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-JALUR_TARGET = "Suwanting"
-BULAN_TARGET = "April"   # bisa ganti "Mei", "Juni", dst
-TAHUN_TARGET = "2026"
+JALUR_TARGET   = "Suwanting"
+TANGGAL_TARGET = "10"     # tanggal spesifik yang dicari
+BULAN_TARGET   = "April"
+TAHUN_TARGET   = "2026"
 
 # Halaman cek kuota publik (tidak perlu login)
 URL_CEK_KUOTA = "https://booking.tngunungmerbabu.org/app/index.php/cek_kuota/list"
@@ -51,16 +52,26 @@ def cek_kuota() -> bool:
 
         print(f"[i] Halaman berhasil diakses ({len(html)} chars)")
 
-        # Deteksi: apakah jalur + bulan target muncul di halaman?
-        jalur_ok = JALUR_TARGET.lower() in html
-        bulan_ok = BULAN_TARGET.lower() in html
-        tahun_ok = TAHUN_TARGET in html
+        # Cari blok teks yang mengandung jalur Suwanting
+        # lalu cek apakah tanggal 10 April 2026 ada di sekitarnya
+        jalur_idx = html.find(JALUR_TARGET.lower())
+        if jalur_idx == -1:
+            print(f"[i] Jalur '{JALUR_TARGET}' ditemukan : False")
+            return False
 
-        print(f"[i] Jalur '{JALUR_TARGET}' ditemukan : {jalur_ok}")
-        print(f"[i] Bulan  '{BULAN_TARGET}' ditemukan : {bulan_ok}")
-        print(f"[i] Tahun  '{TAHUN_TARGET}'  ditemukan : {tahun_ok}")
+        # Ambil jendela 500 karakter setelah nama jalur ditemukan
+        window = html[jalur_idx: jalur_idx + 500]
 
-        return jalur_ok and bulan_ok and tahun_ok
+        jalur_ok   = True
+        tanggal_ok = TANGGAL_TARGET in window
+        bulan_ok   = BULAN_TARGET.lower() in window
+        tahun_ok   = TAHUN_TARGET in window
+
+        print(f"[i] Jalur    '{JALUR_TARGET}'        ditemukan : {jalur_ok}")
+        print(f"[i] Tanggal  '{TANGGAL_TARGET} {BULAN_TARGET} {TAHUN_TARGET}' ditemukan : {tanggal_ok and bulan_ok and tahun_ok}")
+        print(f"[i] Window   : {window[:200]}...")
+
+        return jalur_ok and tanggal_ok and bulan_ok and tahun_ok
 
     except requests.RequestException as e:
         # Jangan crash — cukup log error, tidak kirim notif (biar ga spam)
@@ -70,7 +81,7 @@ def cek_kuota() -> bool:
 
 
 def main():
-    print(f"[*] Cek kuota Merbabu via {JALUR_TARGET} untuk {BULAN_TARGET} {TAHUN_TARGET}...")
+    print(f"[*] Cek kuota Merbabu via {JALUR_TARGET} untuk {TANGGAL_TARGET} {BULAN_TARGET} {TAHUN_TARGET}...")
     print(f"[*] Waktu: {datetime.now().strftime('%d %b %Y %H:%M')} WIB")
     print(f"[*] URL  : {URL_CEK_KUOTA}")
 
@@ -79,8 +90,8 @@ def main():
     if kuota_tersedia:
         pesan = (
             f"🏔️ <b>KUOTA MERBABU SUDAH BUKA!</b>\n\n"
-            f"✅ Jalur <b>{JALUR_TARGET}</b> — <b>{BULAN_TARGET} {TAHUN_TARGET}</b> "
-            f"sudah tersedia!\n\n"
+            f"✅ Jalur <b>{JALUR_TARGET}</b>\n"
+            f"📅 Tanggal <b>{TANGGAL_TARGET} {BULAN_TARGET} {TAHUN_TARGET}</b> tersedia!\n\n"
             f"🔗 Langsung booking di:\n"
             f"<a href='https://booking.tngunungmerbabu.org/app/'>booking.tngunungmerbabu.org</a>\n\n"
             f"⏰ Jangan telat, kuota cepat habis!\n"
@@ -89,7 +100,7 @@ def main():
         send_telegram(pesan)
         print("[✓] Kuota TERSEDIA — notifikasi terkirim!")
     else:
-        print(f"[-] Kuota {BULAN_TARGET} jalur {JALUR_TARGET} belum tersedia. Coba lagi nanti.")
+        print(f"[-] Kuota {TANGGAL_TARGET} {BULAN_TARGET} jalur {JALUR_TARGET} belum tersedia. Coba lagi nanti.")
 
 
 if __name__ == "__main__":
